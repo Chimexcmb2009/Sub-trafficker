@@ -2,26 +2,26 @@
   "name": "Sub Trafficker Telecom & Gaming",
   "short_name": "Sub Trafficker",
   "description": "Airtime & Data Trafficking Hub, Friends Network & 3D Multiplayer FPS Combat by Chimex Verse LLC",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "icons": [
     {
-      "src": "/pwa-icon.png",
+      "src": "./pwa-icon.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/pwa-icon.png",
+      "src": "./pwa-icon.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/favicon.png",
+      "src": "./favicon.png",
       "sizes": "64x64 32x32 24x24 16x16",
       "type": "image/png"
     }
