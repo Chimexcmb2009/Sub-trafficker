@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // User profile and balances
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+    
+    // Financial and airtime transactions
+    match /transactions/{transactionId} {
+      allow read, write: if true;
+    }
+
+    // Friend requests
+    match /friend_requests/{requestId} {
+      allow read, write: if true;
+    }
+
+    // Friendship pairs
+    match /friendships/{friendshipId} {
+      allow read, write: if true;
+    }
+
+    // Direct chats and subcollection messages
+    match /chats/{chatId} {
+      allow read, write: if true;
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Community channel chat messages
+    match /community_chats/{channelId} {
+      allow read, write: if true;
+      match /messages/{messageId} {
+        allow read, write: if true;
+      }
+    }
+
+    // Multiplayer game rooms
+    match /game_rooms/{roomId} {
+      allow read, write: if true;
+    }
+
+    // Multiplayer game invites
+    match /game_invites/{inviteId} {
+      allow read, write: if true;
+    }
+
+    // Platform and revenue admin settings
+    match /admin_settings/{settingId} {
+      allow read, write: if true;
+    }
+
+    // Blood Strike FPS Profiles and loadout persistence
+    match /fps_profiles/{userId} {
+      allow read, write: if true;
+    }
+
+    // Blood Strike Matchmaking Queue
+    match /fps_matchmaking/{matchId} {
+      allow read, write: if true;
+    }
+
+    // Blood Strike Real 3D Multiplayer Matches & Live Players
+    match /fps_matches/{matchId} {
+      allow read, write: if true;
+      match /players/{playerId} {
+        allow read, write: if true;
+      }
+      match /events/{eventId} {
+        allow read, write: if true;
+      }
+      match /chat/{chatId} {
+        allow read, write: if true;
+      }
+    }
+  }
+}
+

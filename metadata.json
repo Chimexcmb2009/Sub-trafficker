@@ -1,0 +1,6 @@
+{
+  "name": "Sub Trafficker",
+  "description": "Convert airtime to real cash instantly, stream cellular traffic to earn money on MTN, Airtel, and Glo, and manage withdrawals securely.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
