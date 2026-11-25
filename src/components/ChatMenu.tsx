@@ -66,7 +66,7 @@ export default function ChatMenu({ profile, initialActiveFriendUid, onNavigateTo
       const list: UserProfile[] = [];
       for (const id of friendUids) {
         if (id === profile.uid) continue;
-        const uDoc = await getDoc(doc(db, 'users', id));
+        const uDoc = await getDoc(doc(db, 'users_public', id));
         if (uDoc.exists()) {
           list.push({ uid: uDoc.id, ...uDoc.data() } as UserProfile);
         }
@@ -198,14 +198,11 @@ export default function ChatMenu({ profile, initialActiveFriendUid, onNavigateTo
     }
   };
 
-  // Simulate Photo Attachment
   const handleSimulateAttachment = () => {
-    const samples = [
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=400&q=80',
-      'https://images.unsplash.com/photo-1563986768609-322da13575f3?auto=format&fit=crop&w=400&q=80'
-    ];
-    setAttachment(samples[Math.floor(Math.random() * samples.length)]);
+    const svgBadge = `data:image/svg+xml;utf8,${encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><rect width="320" height="180" rx="16" fill="#0f172a"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-weight="700" font-size="18" fill="#f59e0b">Squad Invite Card</text></svg>'
+    )}`;
+    setAttachment(svgBadge);
   };
 
   // Filtered messages by search
@@ -285,7 +282,7 @@ export default function ChatMenu({ profile, initialActiveFriendUid, onNavigateTo
                   >
                     <div className="relative shrink-0">
                       <img
-                        src={f.profilePic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                        src={f.profilePic || 'https://api.dicebear.com/7.x/adventurer/svg?seed=SubTrafficker'}
                         alt={f.name}
                         className="w-10 h-10 rounded-xl object-cover border border-white/20"
                       />
@@ -348,7 +345,7 @@ export default function ChatMenu({ profile, initialActiveFriendUid, onNavigateTo
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <img
-                    src={activeFriend.profilePic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                    src={activeFriend.profilePic || 'https://api.dicebear.com/7.x/adventurer/svg?seed=SubTrafficker'}
                     alt={activeFriend.name}
                     className="w-10 h-10 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
                   />
@@ -421,7 +418,7 @@ export default function ChatMenu({ profile, initialActiveFriendUid, onNavigateTo
                   className={`flex items-start gap-2.5 ${isMe ? 'flex-row-reverse' : 'flex-row'}`}
                 >
                   <img
-                    src={msg.senderPic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                    src={msg.senderPic || 'https://api.dicebear.com/7.x/adventurer/svg?seed=SubTrafficker'}
                     alt={msg.senderName}
                     className="w-8 h-8 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
                   />

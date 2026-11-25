@@ -5,21 +5,57 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { doc, getDocFromServer, getFirestore } from 'firebase/firestore';
+import firebaseConfig from '../firebase-applet-config.json';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCb8tgF8KI0RAsiBqfcgTizZ2LvK9Tk6Lo",
-  authDomain: "clever-catcher-p09p9.firebaseapp.com",
-  projectId: "clever-catcher-p09p9",
-  storageBucket: "clever-catcher-p09p9.firebasestorage.app",
-  messagingSenderId: "1025480877123",
-  appId: "1:1025480877123:web:6df50482a8ea45608da0f6"
-};
-
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Services
 export const auth = getAuth(app);
-// Use the specific firestore database ID provided in the config
-export const db = getFirestore(app, "ai-studio-44d0513f-99c8-48ed-9d0a-3058edb4b6b9");
+export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId: string | undefined;
+    email: string | null | undefined;
+    emailVerified: boolean | undefined;
+    isAnonymous: boolean | undefined;
+  };
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+    },
+    operationType,
+    path,
+  };
+  console.error('Firestore Error:', JSON.stringify(errInfo));
+  throw new Error(errInfo.error);
+}
+
+export async function testConnection() {
+  try {
+    await getDocFromServer(doc(db, 'test', 'connection'));
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Firestore client is offline. Check network or Firebase configuration.');
+    }
+  }
+}

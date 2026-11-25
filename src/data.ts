@@ -5,39 +5,44 @@
 
 import { ISPConfig } from './types';
 
+function makeCarrierSvg(label: string, bg: string, fg: string): string {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80"><rect width="80" height="80" rx="20" fill="${bg}"/><text x="50%" y="54%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-weight="800" font-size="22" fill="${fg}">${label}</text></svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 export const NIGERIAN_ISPS: ISPConfig[] = [
   {
     name: 'MTN',
-    color: '#F9D915', // Yellow
-    badgeBg: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-    rate: 0.85, // 85% conversion rate
-    trafficRate: 0.15, // 0.15 NGN per MB
-    logo: 'https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=100&auto=format&fit=crop&q=60' // Tech geometric
+    color: '#FACC15',
+    badgeBg: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
+    rate: 0.85,
+    trafficRate: 0.15,
+    logo: makeCarrierSvg('MTN', '#FACC15', '#0F172A'),
   },
   {
     name: 'Airtel',
-    color: '#FF0000', // Red
-    badgeBg: 'bg-red-500/10 text-red-500 border-red-500/20',
-    rate: 0.82, // 82% conversion rate
-    trafficRate: 0.18, // 0.18 NGN per MB
-    logo: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=100&auto=format&fit=crop&q=60' // Red abstract
+    color: '#EF4444',
+    badgeBg: 'bg-red-500/15 text-red-400 border-red-500/30',
+    rate: 0.82,
+    trafficRate: 0.18,
+    logo: makeCarrierSvg('AIR', '#DC2626', '#FFFFFF'),
   },
   {
     name: 'Glo',
-    color: '#2E8B57', // Green
-    badgeBg: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-    rate: 0.80, // 80% conversion rate
-    trafficRate: 0.20, // 0.20 NGN per MB
-    logo: 'https://images.unsplash.com/photo-1557683311-eac922347aa1?w=100&auto=format&fit=crop&q=60' // Green abstract
+    color: '#10B981',
+    badgeBg: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+    rate: 0.80,
+    trafficRate: 0.20,
+    logo: makeCarrierSvg('GLO', '#059669', '#FFFFFF'),
   },
   {
     name: '9mobile',
-    color: '#006400', // Dark Green
-    badgeBg: 'bg-green-600/10 text-green-600 border-green-600/20',
-    rate: 0.78, // 78% conversion rate
-    trafficRate: 0.22, // 0.22 NGN per MB
-    logo: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=100&auto=format&fit=crop&q=60' // Teal abstract
-  }
+    color: '#14B8A6',
+    badgeBg: 'bg-teal-500/15 text-teal-400 border-teal-500/30',
+    rate: 0.78,
+    trafficRate: 0.22,
+    logo: makeCarrierSvg('9MB', '#0F766E', '#FFFFFF'),
+  },
 ];
 
 export const NIGERIAN_BANKS = [
@@ -55,7 +60,7 @@ export const NIGERIAN_BANKS = [
   'OPay',
   'Palmpay',
   'Moniepoint',
-  'VFD Microfinance Bank'
+  'VFD Microfinance Bank',
 ];
 
 export const NIGERIAN_BANK_CODES: Record<string, string> = {
@@ -73,7 +78,7 @@ export const NIGERIAN_BANK_CODES: Record<string, string> = {
   'OPay': '999992',
   'Palmpay': '999991',
   'Moniepoint': '50515',
-  'VFD Microfinance Bank': '566'
+  'VFD Microfinance Bank': '566',
 };
 
 export const AVATAR_TEMPLATES = [
@@ -82,5 +87,5 @@ export const AVATAR_TEMPLATES = [
   'https://api.dicebear.com/7.x/adventurer/svg?seed=Chijioke',
   'https://api.dicebear.com/7.x/adventurer/svg?seed=Tunde',
   'https://api.dicebear.com/7.x/adventurer/svg?seed=Francisca',
-  'https://api.dicebear.com/7.x/adventurer/svg?seed=Olawale'
+  'https://api.dicebear.com/7.x/adventurer/svg?seed=Olawale',
 ];

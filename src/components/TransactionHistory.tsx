@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
+import { ArrowDownLeft, ArrowUpRight, Calendar, Inbox, Search, Signal } from 'lucide-react';
 import { Transaction } from '../types';
-import { Search, ArrowDownLeft, ArrowUpRight, Signal, AlertCircle, Calendar, CreditCard } from 'lucide-react';
 
 interface TransactionHistoryProps {
   transactions: Transaction[];
@@ -15,65 +15,67 @@ export default function TransactionHistory({ transactions }: TransactionHistoryP
   const [filterType, setFilterType] = useState<'all' | 'airtime_convert' | 'withdrawal' | 'traffic_cashout'>('all');
   const [search, setSearch] = useState('');
 
-  // Sort: newest first
-  const sortedTransactions = [...transactions].sort((a, b) => {
-    return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-  });
+  const sortedTransactions = [...transactions].sort(
+    (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+  );
 
-  const filtered = sortedTransactions.filter(tx => {
+  const filtered = sortedTransactions.filter((tx) => {
     const matchesFilter = filterType === 'all' || tx.type === filterType;
-    const matchesSearch = tx.networkOrIsp.toLowerCase().includes(search.toLowerCase()) || 
-                          tx.referenceDetails.toLowerCase().includes(search.toLowerCase()) ||
-                          tx.id.toLowerCase().includes(search.toLowerCase());
+    const q = search.toLowerCase();
+    const matchesSearch =
+      tx.networkOrIsp.toLowerCase().includes(q) ||
+      tx.referenceDetails.toLowerCase().includes(q) ||
+      tx.id.toLowerCase().includes(q);
     return matchesFilter && matchesSearch;
   });
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm relative overflow-hidden" id="transaction-history-panel">
-      {/* Header & Filter Row */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+    <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 sm:p-6 space-y-5" id="transaction-history-panel">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h3 className="font-bold font-display text-slate-800 text-lg">Transaction History</h3>
-          <p className="text-slate-500 text-xs">Full history of airtime conversions, data sharing rewards, and withdrawals</p>
+          <h3 className="text-lg font-bold text-white">Transaction History</h3>
+          <p className="text-xs text-slate-400">
+            Audited record of airtime conversions, sponsored engagement rewards, and verified bank payouts.
+          </p>
         </div>
 
-        {/* Search */}
         <div className="relative w-full md:w-64">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search transactions..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:bg-white transition text-xs"
-            id="search-transactions-input"
+            placeholder="Search reference or network..."
+            className="w-full min-h-[42px] rounded-xl border border-slate-800 bg-slate-950 pl-10 pr-3 text-xs text-white placeholder:text-slate-500 focus:border-amber-500 focus:outline-none"
           />
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 border-b border-slate-100 pb-4 mb-4 overflow-x-auto">
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {(['all', 'airtime_convert', 'withdrawal', 'traffic_cashout'] as const).map((type) => (
           <button
             key={type}
+            type="button"
             onClick={() => setFilterType(type)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${filterType === type ? 'bg-slate-100 text-blue-600 border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
-            id={`filter-tx-${type}`}
+            className={`min-h-[40px] rounded-xl px-3.5 text-xs font-semibold whitespace-nowrap border transition ${
+              filterType === type
+                ? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+                : 'border-slate-800 bg-slate-950 text-slate-400 hover:text-white'
+            }`}
           >
             {type === 'all' && 'All Activity'}
             {type === 'airtime_convert' && 'Airtime Swaps'}
-            {type === 'withdrawal' && 'Withdrawals'}
-            {type === 'traffic_cashout' && 'Data Sharing'}
+            {type === 'withdrawal' && 'Bank Payouts'}
+            {type === 'traffic_cashout' && 'Sponsored Rewards'}
           </button>
         ))}
       </div>
 
-      {/* List */}
-      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+      <div className="space-y-2.5 max-h-[420px] overflow-y-auto pr-1">
         {filtered.length === 0 ? (
-          <div className="py-12 flex flex-col items-center text-center text-slate-400 space-y-2">
-            <AlertCircle size={32} className="text-slate-300 animate-pulse" />
-            <p className="text-sm">No transactions found matching the selected filters.</p>
+          <div className="py-12 flex flex-col items-center text-center text-slate-500 space-y-2 border border-dashed border-slate-800 rounded-xl">
+            <Inbox className="w-8 h-8 text-slate-600" />
+            <p className="text-xs">No matching transactions found yet.</p>
           </div>
         ) : (
           filtered.map((tx) => {
@@ -82,44 +84,47 @@ export default function TransactionHistory({ transactions }: TransactionHistoryP
               day: 'numeric',
               month: 'short',
               hour: '2-digit',
-              minute: '2-digit'
+              minute: '2-digit',
             });
 
             return (
-              <div 
+              <div
                 key={tx.id}
-                className="p-4 bg-slate-50/50 border border-slate-100 hover:bg-slate-50 hover:border-slate-250 rounded-2xl flex items-center justify-between transition-all"
-                id={`tx-item-${tx.id}`}
+                className="rounded-xl border border-slate-800/90 bg-slate-950/70 p-4 flex items-center justify-between gap-3"
               >
-                {/* Left: Type Icon + Info */}
-                <div className="flex items-center gap-3.5">
-                  <div className={`p-2.5 rounded-xl border shrink-0 ${tx.type === 'airtime_convert' ? 'bg-blue-50 border-blue-100 text-blue-600' : tx.type === 'withdrawal' ? 'bg-rose-50 border-rose-100 text-rose-600' : 'bg-emerald-50 border-emerald-100 text-emerald-600'}`}>
-                    {tx.type === 'airtime_convert' && <ArrowDownLeft size={18} />}
-                    {tx.type === 'withdrawal' && <ArrowUpRight size={18} />}
-                    {tx.type === 'traffic_cashout' && <Signal size={18} />}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div
+                    className={`p-2.5 rounded-xl border shrink-0 ${
+                      tx.type === 'airtime_convert'
+                        ? 'bg-sky-500/10 border-sky-500/20 text-sky-400'
+                        : tx.type === 'withdrawal'
+                          ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                          : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                    }`}
+                  >
+                    {tx.type === 'airtime_convert' && <ArrowDownLeft className="w-4 h-4" />}
+                    {tx.type === 'withdrawal' && <ArrowUpRight className="w-4 h-4" />}
+                    {tx.type === 'traffic_cashout' && <Signal className="w-4 h-4" />}
                   </div>
 
-                  <div className="space-y-0.5">
-                    <p className="text-sm font-semibold text-slate-800 flex items-center gap-1.5">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">
                       {tx.type === 'airtime_convert' && 'Airtime to Cash'}
                       {tx.type === 'withdrawal' && 'Bank Payout'}
-                      {tx.type === 'traffic_cashout' && 'Cellular Harvesting'}
-                      <span className="text-[10px] font-normal text-slate-400 font-mono">({tx.id})</span>
+                      {tx.type === 'traffic_cashout' && 'Sponsored Engagement Reward'}
                     </p>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-slate-400 truncate">
                       {tx.networkOrIsp} • {tx.referenceDetails}
                     </p>
                   </div>
                 </div>
 
-                {/* Right: Amount & Timestamp */}
-                <div className="text-right space-y-1">
-                  <p className={`text-sm font-bold font-mono ${isCredit ? 'text-emerald-600' : 'text-slate-800'}`}>
-                    {isCredit ? '+' : '-'} ₦{tx.receivedAmount.toLocaleString()}
+                <div className="text-right shrink-0">
+                  <p className={`text-sm font-bold font-mono tabular-nums ${isCredit ? 'text-emerald-400' : 'text-slate-200'}`}>
+                    {isCredit ? '+' : '-'}₦{Number(tx.receivedAmount || 0).toLocaleString()}
                   </p>
-                  <p className="text-[10px] text-slate-400 flex items-center justify-end gap-1 font-mono">
-                    <Calendar size={10} />
-                    {formattedDate}
+                  <p className="text-[11px] text-slate-500 inline-flex items-center gap-1 font-mono">
+                    <Calendar className="w-3 h-3" /> {formattedDate}
                   </p>
                 </div>
               </div>

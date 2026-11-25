@@ -1,80 +1,182 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // User profile and balances
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == 'anifranciscaomeje@gmail.com' && request.auth.token.email_verified == true) ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidUserCreate(userId) {
+      return request.resource.data.uid == userId &&
+             request.resource.data.email is string;
+    }
+
+    function isValidUserUpdate(userId) {
+      return request.resource.data.uid == resource.data.uid &&
+             request.resource.data.email == resource.data.email;
+    }
+
+    // Owner-only private user profile, balances, and bank details
     match /users/{userId} {
-      allow read, write: if true;
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && isValidUserCreate(userId);
+      allow update: if (isOwner(userId) && isValidUserUpdate(userId)) || isAdmin();
+      allow delete: if isAdmin();
     }
-    
-    // Financial and airtime transactions
+
+    // Non-sensitive public directory profile for friend search, chat, and gaming
+    match /users_public/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) && request.resource.data.uid == userId;
+      allow delete: if isAdmin();
+    }
+
+    // Admin registry
+    match /admins/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.auth.token.email == 'anifranciscaomeje@gmail.com';
+      allow update, delete: if false;
+    }
+
+    // Financial and airtime transactions (owner-scoped)
     match /transactions/{transactionId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid && request.resource.data.amount is number;
+      allow update, delete: if isAdmin();
     }
 
-    // Friend requests
+    // Friend requests (sender/receiver only)
     match /friend_requests/{requestId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.senderUid == request.auth.uid ||
+        resource.data.receiverUid == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && request.resource.data.senderUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.receiverUid == request.auth.uid ||
+        resource.data.senderUid == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.senderUid == request.auth.uid ||
+        resource.data.receiverUid == request.auth.uid
+      );
     }
 
-    // Friendship pairs
+    // Friendships (participant-scoped)
     match /friendships/{friendshipId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.userA == request.auth.uid ||
+        resource.data.userB == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isAuthenticated() && (
+        request.resource.data.userA == request.auth.uid ||
+        request.resource.data.userB == request.auth.uid
+      );
+      allow update: if false;
+      allow delete: if isAuthenticated() && (
+        resource.data.userA == request.auth.uid ||
+        resource.data.userB == request.auth.uid
+      );
     }
 
-    // Direct chats and subcollection messages
+    // Direct chats (participants identified in chatId uidA_uidB)
     match /chats/{chatId} {
-      allow read, write: if true;
+      allow read, write: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+
       match /messages/{messageId} {
-        allow read, write: if true;
+        allow read: if isAuthenticated() && chatId.matches('.*' + request.auth.uid + '.*');
+        allow create: if isAuthenticated() &&
+                      chatId.matches('.*' + request.auth.uid + '.*') &&
+                      request.resource.data.senderUid == request.auth.uid;
+        allow update, delete: if isAuthenticated() && resource.data.senderUid == request.auth.uid;
       }
     }
 
-    // Community channel chat messages
+    // Community channel chats
     match /community_chats/{channelId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+
       match /messages/{messageId} {
-        allow read, write: if true;
+        allow read: if isAuthenticated();
+        allow create: if isAuthenticated() && request.resource.data.senderUid == request.auth.uid;
+        allow update, delete: if isAuthenticated() && (resource.data.senderUid == request.auth.uid || isAdmin());
       }
     }
 
     // Multiplayer game rooms
     match /game_rooms/{roomId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.hostUid == request.auth.uid;
+      allow update: if isAuthenticated();
+      allow delete: if isAuthenticated() && (resource.data.hostUid == request.auth.uid || isAdmin());
     }
 
     // Multiplayer game invites
     match /game_invites/{inviteId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated() && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid
+      );
+      allow create: if isAuthenticated() && request.resource.data.fromUid == request.auth.uid;
+      allow update: if isAuthenticated() && (
+        resource.data.toUid == request.auth.uid ||
+        resource.data.fromUid == request.auth.uid
+      );
+      allow delete: if isAuthenticated() && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid
+      );
     }
 
-    // Platform and revenue admin settings
+    // Platform and revenue admin settings (Owner Admin ONLY)
     match /admin_settings/{settingId} {
-      allow read, write: if true;
+      allow read, write: if isAdmin();
     }
 
     // Blood Strike FPS Profiles and loadout persistence
     match /fps_profiles/{userId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId) && request.resource.data.uid == userId;
+      allow delete: if isAdmin();
     }
 
     // Blood Strike Matchmaking Queue
     match /fps_matchmaking/{matchId} {
-      allow read, write: if true;
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Blood Strike Real 3D Multiplayer Matches & Live Players
     match /fps_matches/{matchId} {
-      allow read, write: if true;
+      allow read, create, update: if isAuthenticated();
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.hostUid == request.auth.uid);
+
       match /players/{playerId} {
-        allow read, write: if true;
+        allow read, create, update: if isAuthenticated();
+        allow delete: if isAdmin() || isOwner(playerId);
       }
       match /events/{eventId} {
-        allow read, write: if true;
+        allow read, create: if isAuthenticated();
+        allow update, delete: if isAdmin();
       }
       match /chat/{chatId} {
-        allow read, write: if true;
+        allow read, create: if isAuthenticated();
+        allow update, delete: if isAdmin();
       }
     }
   }
 }
-

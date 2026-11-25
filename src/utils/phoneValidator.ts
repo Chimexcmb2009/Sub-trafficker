@@ -1,57 +1,60 @@
 import { ISPName } from '../types';
 
-// Map of Nigerian ISP prefixes
+// Comprehensive Nigerian NCC mobile operator prefix registry (estimate subject to MNP)
 export const ISP_PREFIXES: Record<ISPName, string[]> = {
   MTN: [
-    '0803', '0806', '0810', '0813', '0814', '0816', 
-    '0903', '0906', '0913', '0916', '0703', '0706', 
-    '07025', '07026', '0704', '0707'
+    '07025', '07026', '0703', '0704', '0706', '0707',
+    '0803', '0806', '0810', '0813', '0814', '0816',
+    '0903', '0906', '0913', '0916',
   ],
   Airtel: [
-    '0802', '0808', '0812', '0701', '0708', 
-    '0901', '0902', '0904', '0907', '0912', '0911'
+    '0701', '0708',
+    '0802', '0808', '0812',
+    '0901', '0902', '0904', '0907', '0911', '0912',
   ],
   Glo: [
-    '0805', '0807', '0811', '0815', '0705', '0905', '0915'
+    '0705', '0805', '0807', '0811', '0815', '0905', '0915',
   ],
   '9mobile': [
-    '0809', '0817', '0818', '0909', '0908'
-  ]
+    '0809', '0817', '0818', '0908', '0909',
+  ],
 };
 
+export const MNP_ESTIMATE_NOTICE =
+  'Prefix matching only estimates original line allocation because Nigerian Mobile Number Portability (MNP) lets subscribers switch networks while keeping their number.';
+
 /**
- * Normalizes a phone number to standard 11-digit Nigerian format (starting with 0)
+ * Normalizes a Nigerian phone number into standard 11-digit local format (0XXXXXXXXXX)
  */
 export function normalizePhoneNumber(phone: string): string {
   if (!phone) return '';
-  
-  // Remove all non-numeric characters (including + etc)
   let cleaned = phone.replace(/\D/g, '');
-  
-  // If starts with 234, replace with 0
-  if (cleaned.startsWith('234')) {
+  if (cleaned.startsWith('234') && cleaned.length >= 13) {
     cleaned = '0' + cleaned.substring(3);
   }
-  
-  // If it's 10 digits and doesn't start with 0, prefix with 0 (e.g. 7073477520 -> 07073477520)
   if (cleaned.length === 10 && !cleaned.startsWith('0')) {
     cleaned = '0' + cleaned;
   }
-  
   return cleaned;
 }
 
+export function formatE164Nigeria(phone: string): string {
+  const local = normalizePhoneNumber(phone);
+  if (local.length === 11 && local.startsWith('0')) {
+    return '+234' + local.substring(1);
+  }
+  return '';
+}
+
 /**
- * Detects the ISP/Carrier name based on the phone number prefix.
+ * Estimates Nigerian carrier by prefix only (returns null if unknown; never defaults to MTN).
  */
 export function detectIspFromPhoneNumber(phone: string): ISPName | null {
   const normalized = normalizePhoneNumber(phone);
-  
   if (normalized.length < 4 || !normalized.startsWith('0')) {
     return null;
   }
 
-  // Check 5-digit prefixes first (e.g. 07025)
   const prefix5 = normalized.substring(0, 5);
   for (const [isp, prefixes] of Object.entries(ISP_PREFIXES)) {
     if (prefixes.includes(prefix5)) {
@@ -59,7 +62,6 @@ export function detectIspFromPhoneNumber(phone: string): ISPName | null {
     }
   }
 
-  // Check 4-digit prefixes
   const prefix4 = normalized.substring(0, 4);
   for (const [isp, prefixes] of Object.entries(ISP_PREFIXES)) {
     if (prefixes.includes(prefix4)) {
@@ -70,46 +72,42 @@ export function detectIspFromPhoneNumber(phone: string): ISPName | null {
   return null;
 }
 
-/**
- * Validates a phone number for length, formatting, and carrier compatibility.
- */
 export function validatePhoneNumberForIsp(
-  phone: string, 
-  selectedIsp: ISPName
-): { isValid: boolean; error?: string; detectedIsp?: ISPName } {
+  phone: string,
+  selectedIsp: ISPName,
+  allowMnpOverride = false
+): { isValid: boolean; error?: string; detectedIsp?: ISPName; isMnpEstimate: boolean } {
   const normalized = normalizePhoneNumber(phone);
-  
-  if (!normalized || normalized.length === 0) {
-    return { isValid: false, error: 'Phone number cannot be empty.' };
+
+  if (!normalized) {
+    return { isValid: false, error: 'Phone number cannot be empty.', isMnpEstimate: true };
   }
-  
-  if (normalized.length !== 11) {
-    return { 
-      isValid: false, 
-      error: `Invalid Nigerian phone number. A standard mobile number must be exactly 11 digits (entered ${normalized.length} digits).` 
+
+  if (!/^0[789][01]\d{8}$/.test(normalized)) {
+    return {
+      isValid: false,
+      error: `Invalid Nigerian mobile number (${normalized.length} digits). Must be 11 digits starting with 070/080/081/090/091 or +234.`,
+      isMnpEstimate: true,
     };
-  }
-  
-  if (!normalized.startsWith('0')) {
-    return { isValid: false, error: 'Invalid Nigerian phone number format. Must start with 0 or +234.' };
   }
 
   const detected = detectIspFromPhoneNumber(normalized);
-  
   if (!detected) {
-    return { 
-      isValid: false, 
-      error: 'The phone number prefix is not recognized as a valid Nigerian mobile operator line.' 
+    return {
+      isValid: false,
+      error: 'Phone prefix is not recognized in Nigerian NCC mobile allocations.',
+      isMnpEstimate: true,
     };
   }
-  
-  if (detected !== selectedIsp) {
-    return { 
-      isValid: false, 
+
+  if (detected !== selectedIsp && !allowMnpOverride) {
+    return {
+      isValid: false,
       detectedIsp: detected,
-      error: `The phone number entered (${normalized}) belongs to ${detected} Nigeria, but you have selected ${selectedIsp} as the operator. Please switch the selected network carrier to match.` 
+      isMnpEstimate: true,
+      error: `Prefix ${normalized.slice(0, 4)} maps to ${detected} (estimate), while ${selectedIsp} is selected. Switch carrier or verify via HLR/SMS OTP if this line was ported via MNP.`,
     };
   }
-  
-  return { isValid: true, detectedIsp: detected };
+
+  return { isValid: true, detectedIsp: detected, isMnpEstimate: true };
 }

@@ -109,7 +109,7 @@ export default function FriendsMenu({ profile, onNavigateToChat, onInviteToGame,
       const list: UserProfile[] = [];
       for (const id of uids) {
         if (id === profile.uid) continue;
-        const uDoc = await getDoc(doc(db, 'users', id));
+        const uDoc = await getDoc(doc(db, 'users_public', id));
         if (uDoc.exists()) {
           list.push({ uid: uDoc.id, ...uDoc.data() } as UserProfile);
         }
@@ -125,7 +125,7 @@ export default function FriendsMenu({ profile, onNavigateToChat, onInviteToGame,
     const fetchUsers = async () => {
       setLoading(true);
       try {
-        const usersSnap = await getDocs(collection(db, 'users'));
+        const usersSnap = await getDocs(collection(db, 'users_public'));
         const list: UserProfile[] = [];
         usersSnap.forEach(d => {
           if (d.id !== profile.uid) {
@@ -386,7 +386,7 @@ export default function FriendsMenu({ profile, onNavigateToChat, onInviteToGame,
                     <div className="flex items-center gap-3">
                       <div className="relative">
                         <img
-                          src={f.profilePic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                          src={f.profilePic || 'https://api.dicebear.com/7.x/adventurer/svg?seed=SubTrafficker'}
                           alt={f.name}
                           className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
                         />
@@ -460,7 +460,7 @@ export default function FriendsMenu({ profile, onNavigateToChat, onInviteToGame,
                 >
                   <div className="flex items-start gap-3">
                     <img
-                      src={req.senderPic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                      src={req.senderPic || 'https://api.dicebear.com/7.x/adventurer/svg?seed=SubTrafficker'}
                       alt={req.senderName}
                       className="w-12 h-12 rounded-xl object-cover border border-slate-300 dark:border-slate-700 shrink-0"
                     />
@@ -531,7 +531,7 @@ export default function FriendsMenu({ profile, onNavigateToChat, onInviteToGame,
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <img
-                        src={u.profilePic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                        src={u.profilePic || 'https://api.dicebear.com/7.x/adventurer/svg?seed=SubTrafficker'}
                         alt={u.name}
                         className="w-10 h-10 rounded-xl object-cover"
                       />
@@ -593,7 +593,7 @@ export default function FriendsMenu({ profile, onNavigateToChat, onInviteToGame,
                   <div className="flex items-center gap-3">
                     <div className="relative">
                       <img
-                        src={v.profilePic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                        src={v.profilePic || 'https://api.dicebear.com/7.x/adventurer/svg?seed=SubTrafficker'}
                         alt={v.name}
                         className="w-10 h-10 rounded-xl object-cover"
                       />
@@ -657,7 +657,7 @@ export default function FriendsMenu({ profile, onNavigateToChat, onInviteToGame,
 
               <div className="p-3 bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 rounded-2xl flex items-center gap-3">
                 <img
-                  src={selectedUserForRequest.profilePic || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
+                  src={selectedUserForRequest.profilePic || 'https://api.dicebear.com/7.x/adventurer/svg?seed=SubTrafficker'}
                   alt={selectedUserForRequest.name}
                   className="w-10 h-10 rounded-xl object-cover"
                 />

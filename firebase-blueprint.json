@@ -2,7 +2,7 @@
   "entities": {
     "User": {
       "title": "User Profile",
-      "description": "User account profile and balances",
+      "description": "Private user account profile, balances, and verification metadata",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
@@ -11,26 +11,39 @@
         "phone": { "type": "string" },
         "profilePic": { "type": "string" },
         "cashBalance": { "type": "number" },
+        "airtimeBalance": { "type": "number" },
         "accumulatedTrafficCash": { "type": "number" },
         "totalDataStreamedMB": { "type": "number" },
         "isp": { "type": "string", "enum": ["MTN", "Airtel", "Glo", "9mobile"] },
-        "bankName": { "type": "string" },
-        "accountNumber": { "type": "string" },
-        "accountName": { "type": "string" },
-        "biometrics": {
-          "type": "object",
-          "properties": {
-            "face": { "type": "boolean" },
-            "fingerprint": { "type": "boolean" },
-            "passkey": { "type": "boolean" }
-          }
-        }
+        "bankDetails": { "type": "object" },
+        "biometrics": { "type": "object" },
+        "emailVerified": { "type": "boolean" },
+        "phoneVerified": { "type": "boolean" },
+        "faceStatus": { "type": "string", "enum": ["pending", "processing", "verified", "failed", "retry_required"] },
+        "bankVerified": { "type": "boolean" }
       },
       "required": ["uid", "email"]
     },
+    "PublicUser": {
+      "title": "Public User Directory Profile",
+      "description": "Non-sensitive public profile fields for friends, chat, and FPS matchmaking",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "username": { "type": "string" },
+        "profilePic": { "type": "string" },
+        "bio": { "type": "string" },
+        "status": { "type": "string" },
+        "isOnline": { "type": "boolean" },
+        "lastSeen": { "type": "string" },
+        "showOnlineStatus": { "type": "boolean" }
+      },
+      "required": ["uid", "name"]
+    },
     "Transaction": {
       "title": "Transaction Log",
-      "description": "Log of airtime conversions and withdrawals",
+      "description": "Log of airtime conversions, sponsored reward claims, and withdrawals",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
@@ -47,18 +60,16 @@
     },
     "FriendRequest": {
       "title": "Friend Request",
-      "description": "Pending, accepted or rejected friend requests",
+      "description": "Pending, accepted or declined friend requests",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "fromUserId": { "type": "string" },
-        "fromUserName": { "type": "string" },
-        "fromUserPic": { "type": "string" },
-        "toUserId": { "type": "string" },
-        "status": { "type": "string", "enum": ["pending", "accepted", "rejected"] },
-        "timestamp": { "type": "number" }
+        "senderUid": { "type": "string" },
+        "receiverUid": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "createdAt": { "type": "string" }
       },
-      "required": ["id", "fromUserId", "toUserId", "status", "timestamp"]
+      "required": ["senderUid", "receiverUid", "status"]
     },
     "Friendship": {
       "title": "Friendship",
@@ -68,9 +79,9 @@
         "id": { "type": "string" },
         "userA": { "type": "string" },
         "userB": { "type": "string" },
-        "createdAt": { "type": "number" }
+        "createdAt": { "type": "string" }
       },
-      "required": ["id", "userA", "userB", "createdAt"]
+      "required": ["userA", "userB"]
     },
     "ChatMessage": {
       "title": "Chat Message",
@@ -78,12 +89,13 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "senderId": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderUid": { "type": "string" },
         "senderName": { "type": "string" },
-        "text": { "type": "string" },
-        "timestamp": { "type": "number" }
+        "content": { "type": "string" },
+        "timestamp": { "type": "string" }
       },
-      "required": ["id", "senderId", "text", "timestamp"]
+      "required": ["senderUid", "content", "timestamp"]
     },
     "GameRoom": {
       "title": "Game Room",
@@ -91,13 +103,11 @@
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "name": { "type": "string" },
         "gameType": { "type": "string" },
-        "hostId": { "type": "string" },
-        "status": { "type": "string" },
-        "createdAt": { "type": "number" }
+        "hostUid": { "type": "string" },
+        "status": { "type": "string" }
       },
-      "required": ["id", "hostId", "status"]
+      "required": ["hostUid", "status"]
     },
     "GameInvite": {
       "title": "Game Invite",
@@ -106,19 +116,17 @@
       "properties": {
         "id": { "type": "string" },
         "roomId": { "type": "string" },
-        "fromUserId": { "type": "string" },
-        "toUserId": { "type": "string" },
-        "status": { "type": "string" },
-        "timestamp": { "type": "number" }
+        "fromUid": { "type": "string" },
+        "toUid": { "type": "string" },
+        "status": { "type": "string" }
       },
-      "required": ["id", "roomId", "fromUserId", "toUserId", "status"]
+      "required": ["roomId", "fromUid", "toUid", "status"]
     },
     "AdminSetting": {
       "title": "Admin Setting",
-      "description": "Platform global configuration and ledgers",
+      "description": "Platform global configuration and revenue ledger",
       "type": "object",
       "properties": {
-        "id": { "type": "string" },
         "totalAdRevenue": { "type": "number" },
         "totalConversions": { "type": "number" }
       }
@@ -133,77 +141,23 @@
         "level": { "type": "number" },
         "xp": { "type": "number" },
         "kills": { "type": "number" },
-        "deaths": { "type": "number" },
-        "headshots": { "type": "number" },
-        "matchesPlayed": { "type": "number" },
-        "matchesWon": { "type": "number" },
-        "credits": { "type": "number" },
-        "equippedCharacterId": { "type": "string" },
-        "equippedWeaponId": { "type": "string" },
-        "equippedSkin": { "type": "string" },
-        "unlockedWeapons": { "type": "array" },
-        "unlockedCharacters": { "type": "array" }
+        "deaths": { "type": "number" }
       },
       "required": ["uid"]
-    },
-    "FpsMatchmaking": {
-      "title": "FPS Matchmaking",
-      "description": "FPS matchmaking queue entry for Blood Strike",
-      "type": "object",
-      "properties": {
-        "userId": { "type": "string" },
-        "username": { "type": "string" },
-        "mode": { "type": "string" },
-        "timestamp": { "type": "number" }
-      },
-      "required": ["userId", "timestamp"]
-    },
-    "FpsMatch": {
-      "title": "FPS Match Session",
-      "description": "Live 3D multiplayer match session",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "hostUid": { "type": "string" },
-        "mapId": { "type": "string" },
-        "mode": { "type": "string" },
-        "status": { "type": "string" },
-        "createdAt": { "type": "string" }
-      },
-      "required": ["id", "hostUid", "mapId", "status"]
-    },
-    "FpsLivePlayer": {
-      "title": "FPS Live Player State",
-      "description": "Real-time 3D multiplayer player state",
-      "type": "object",
-      "properties": {
-        "uid": { "type": "string" },
-        "name": { "type": "string" },
-        "x": { "type": "number" },
-        "y": { "type": "number" },
-        "z": { "type": "number" },
-        "yaw": { "type": "number" },
-        "pitch": { "type": "number" },
-        "health": { "type": "number" },
-        "shield": { "type": "number" },
-        "action": { "type": "string" },
-        "weaponId": { "type": "string" },
-        "characterId": { "type": "string" },
-        "kills": { "type": "number" },
-        "isFiring": { "type": "boolean" },
-        "updatedAt": { "type": "number" }
-      },
-      "required": ["uid", "name", "x", "y", "z", "health"]
     }
   },
   "firestore": {
     "users/{userId}": {
       "schema": "User",
-      "description": "User profile settings and balances"
+      "description": "Owner-only user profile settings and balances"
+    },
+    "users_public/{userId}": {
+      "schema": "PublicUser",
+      "description": "Public directory fields for chat, friends, and gaming"
     },
     "transactions/{transactionId}": {
       "schema": "Transaction",
-      "description": "List of all financial transactions"
+      "description": "User financial and conversion transactions"
     },
     "friend_requests/{requestId}": {
       "schema": "FriendRequest",
@@ -231,23 +185,11 @@
     },
     "admin_settings/{settingId}": {
       "schema": "AdminSetting",
-      "description": "Admin platform settings"
+      "description": "Owner-only admin platform settings"
     },
     "fps_profiles/{userId}": {
       "schema": "FpsProfile",
       "description": "FPS game player stats, loadout and inventory"
-    },
-    "fps_matchmaking/{matchId}": {
-      "schema": "FpsMatchmaking",
-      "description": "FPS matchmaking queue"
-    },
-    "fps_matches/{matchId}": {
-      "schema": "FpsMatch",
-      "description": "Active 3D FPS multiplayer match"
-    },
-    "fps_matches/{matchId}/players/{playerId}": {
-      "schema": "FpsLivePlayer",
-      "description": "Real-time 3D multiplayer player state"
     }
   }
 }

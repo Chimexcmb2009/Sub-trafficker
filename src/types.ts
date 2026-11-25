@@ -12,10 +12,13 @@ export interface BiometricSettings {
 }
 
 export interface BankDetails {
+  bankCode?: string;
   bankName: string;
   accountNumber: string;
   accountName: string;
 }
+
+export type FaceVerificationStatus = 'pending' | 'processing' | 'verified' | 'failed' | 'retry_required';
 
 export interface UserProfile {
   uid: string;
@@ -29,12 +32,23 @@ export interface UserProfile {
   bio?: string;
   passkeyCredentialId?: string;
   cashBalance: number; // in NGN
-  airtimeBalance: number; // in NGN (the balance on the user's simulated cellular SIM)
+  airtimeBalance: number; // in NGN
   accumulatedTrafficCash: number; // in NGN
   totalDataStreamedMB: number; // in MB
   isp: ISPName;
   bankDetails: BankDetails;
   biometrics: BiometricSettings;
+  emailVerified?: boolean;
+  phoneVerified?: boolean;
+  phoneCarrierVerified?: boolean;
+  faceStatus?: FaceVerificationStatus;
+  faceProvider?: string;
+  faceConfidence?: number | null;
+  faceReason?: string;
+  bankVerified?: boolean;
+  bankConfirmed?: boolean;
+  passkeyCount?: number;
+  role?: 'user' | 'admin';
   createdAt: string;
   isOnline?: boolean;
   lastSeen?: string;

@@ -1,113 +1,107 @@
-/**
- * WebAuthn / Passkey & Native Hardware Biometrics Helper
- */
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
+import { apiRequest } from '../lib/apiClient';
 
 export function isWebAuthnSupported(): boolean {
-  return typeof window !== 'undefined' && !!window.PublicKeyCredential;
+  return typeof window !== 'undefined' && Boolean(window.PublicKeyCredential);
 }
 
 export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
   if (!isWebAuthnSupported()) return false;
   try {
     return await window.PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-  } catch (e) {
+  } catch {
     return false;
   }
 }
 
-/**
- * Register a new Passkey / Device Biometric Credential via native OS Prompt
- */
-export async function registerPasskey(email: string, name: string): Promise<{ success: boolean; credentialId?: string; error?: string }> {
+export async function registerPasskey(deviceName?: string): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   if (!isWebAuthnSupported()) {
-    return { success: false, error: 'WebAuthn hardware biometrics is not supported on this browser.' };
+    return { success: false, error: 'WebAuthn passkeys are not supported in this browser.' };
   }
 
   try {
-    const challenge = new Uint8Array(32);
-    window.crypto.getRandomValues(challenge);
+    const optRes = await apiRequest<{ challengeId: string; options: any }>('/api/webauthn/register/options', {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
 
-    const userIdBytes = new TextEncoder().encode(email || 'sub_trafficker_user');
-
-    const publicKeyCredentialCreationOptions: PublicKeyCredentialCreationOptions = {
-      challenge,
-      rp: {
-        name: 'Sub Trafficker Biometric Guard',
-        id: window.location.hostname
-      },
-      user: {
-        id: userIdBytes,
-        name: email || 'user@subtrafficker.com',
-        displayName: name || 'Sub Trafficker User'
-      },
-      pubKeyCredParams: [
-        { alg: -7, type: 'public-key' },  // ES256
-        { alg: -257, type: 'public-key' } // RS256
-      ],
-      authenticatorSelection: {
-        authenticatorAttachment: 'platform', // Triggers Touch ID, Face ID, Windows Hello, Android Biometric
-        userVerification: 'required',
-        residentKey: 'preferred'
-      },
-      timeout: 60000,
-      attestation: 'none'
-    };
-
-    const credential = await navigator.credentials.create({
-      publicKey: publicKeyCredentialCreationOptions
-    }) as PublicKeyCredential | null;
-
-    if (!credential) {
-      return { success: false, error: 'Biometric registration canceled by user.' };
+    if (!optRes.ok || !optRes.data?.options) {
+      return { success: false, error: optRes.data?.message || 'Unable to initialize passkey registration.' };
     }
 
-    const credId = credential.id;
-    return { success: true, credentialId: credId };
+    const attResp = await startRegistration({ optionsJSON: optRes.data.options });
+
+    const verifyRes = await apiRequest('/api/webauthn/register/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        challengeId: optRes.data.challengeId,
+        credential: attResp,
+        deviceName: deviceName || navigator.platform || 'Platform Authenticator',
+      }),
+    });
+
+    if (!verifyRes.ok || !verifyRes.data?.status) {
+      return { success: false, error: verifyRes.data?.message || 'Server rejected passkey attestation.' };
+    }
+
+    return { success: true };
   } catch (err: any) {
-    console.warn('WebAuthn Passkey Registration Error:', err);
-    if (err.name === 'NotAllowedError') {
-      return { success: false, error: 'Device biometric prompt was canceled or timed out.' };
+    if (err?.name === 'NotAllowedError') {
+      return { success: false, error: 'Biometric / passkey prompt was canceled or blocked by this frame.' };
     }
-    if (err.name === 'InvalidStateError') {
-      return { success: false, error: 'A passkey credential already exists for this device.' };
+    if (err?.name === 'InvalidStateError') {
+      return { success: false, error: 'This authenticator already has a registered passkey for this account.' };
     }
-    return { success: false, error: err.message || 'Failed to complete WebAuthn biometric prompt.' };
+    return { success: false, error: err?.message || 'Passkey registration failed.' };
   }
 }
 
-/**
- * Authenticate using registered Passkey / Hardware Biometrics
- */
-export async function authenticatePasskey(): Promise<{ success: boolean; credentialId?: string; error?: string }> {
+export async function authenticatePasskey(email?: string): Promise<{
+  success: boolean;
+  token?: string;
+  user?: any;
+  error?: string;
+}> {
   if (!isWebAuthnSupported()) {
-    return { success: false, error: 'WebAuthn hardware biometrics is not supported on this browser.' };
+    return { success: false, error: 'WebAuthn passkeys are not supported in this browser.' };
   }
 
   try {
-    const challenge = new Uint8Array(32);
-    window.crypto.getRandomValues(challenge);
+    const optRes = await apiRequest<{ challengeId: string; options: any }>('/api/webauthn/login/options', {
+      method: 'POST',
+      body: JSON.stringify({ email: email?.trim() || undefined }),
+    });
 
-    const publicKeyCredentialRequestOptions: PublicKeyCredentialRequestOptions = {
-      challenge,
-      rpId: window.location.hostname,
-      userVerification: 'required',
-      timeout: 60000
+    if (!optRes.ok || !optRes.data?.options) {
+      return { success: false, error: optRes.data?.message || 'Could not start passkey sign-in.' };
+    }
+
+    const asseResp = await startAuthentication({ optionsJSON: optRes.data.options });
+
+    const verifyRes = await apiRequest<{ token: string; user: any }>('/api/webauthn/login/verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        challengeId: optRes.data.challengeId,
+        credential: asseResp,
+      }),
+    });
+
+    if (!verifyRes.ok || !verifyRes.data?.status) {
+      return { success: false, error: verifyRes.data?.message || 'Passkey verification failed.' };
+    }
+
+    return {
+      success: true,
+      token: verifyRes.data.token,
+      user: verifyRes.data.user,
     };
-
-    const assertion = await navigator.credentials.get({
-      publicKey: publicKeyCredentialRequestOptions
-    }) as PublicKeyCredential | null;
-
-    if (!assertion) {
-      return { success: false, error: 'Biometric verification canceled.' };
-    }
-
-    return { success: true, credentialId: assertion.id };
   } catch (err: any) {
-    console.warn('WebAuthn Passkey Authentication Error:', err);
-    if (err.name === 'NotAllowedError') {
-      return { success: false, error: 'Biometric verification prompt was canceled or rejected by user.' };
+    if (err?.name === 'NotAllowedError') {
+      return { success: false, error: 'Biometric prompt was canceled or timed out.' };
     }
-    return { success: false, error: err.message || 'Biometric authentication failed.' };
+    return { success: false, error: err?.message || 'Passkey sign-in failed.' };
   }
 }

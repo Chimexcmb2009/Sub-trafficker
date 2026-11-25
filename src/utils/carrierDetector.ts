@@ -1,75 +1,72 @@
 import { ISPName } from '../types';
+import { apiRequest } from '../lib/apiClient';
+import { detectIspFromPhoneNumber, MNP_ESTIMATE_NOTICE, normalizePhoneNumber } from './phoneValidator';
+
+export interface CarrierLookupResult {
+  carrier: ISPName | null;
+  method: 'hlr_live' | 'prefix_estimate' | 'ip_isp' | 'unknown';
+  provider: string;
+  ported?: boolean;
+  mnpNotice: string;
+  normalizedLocal?: string;
+  normalizedE164?: string;
+}
 
 /**
- * Dynamically queries public, highly-available geolocation and IP connection lookup APIs 
- * to determine the user's real-time active carrier network/ISP connection.
- * Avoids simulation by performing live, real-time fetching.
+ * Performs backend phone carrier resolution (Termii HLR/MNP lookup + NCC prefix fallback).
+ * Never defaults unknown numbers to MTN.
  */
-export async function detectCarrierRealTime(): Promise<ISPName> {
-  // Option 1: Try modern Connection Network Information API if available (helps on some devices)
+export async function lookupPhoneCarrier(phone: string): Promise<CarrierLookupResult> {
+  const normalized = normalizePhoneNumber(phone);
   try {
-    const conn = (navigator as any).connection || (navigator as any).mozConnection || (navigator as any).webkitConnection;
-    if (conn && conn.type === 'cellular') {
-      // In some hybrid mobile wrappers or advanced browsers, we can inspect more details
-      console.log('Cellular connection type detected on client.');
+    const res = await apiRequest<CarrierLookupResult>('/api/phone/detect', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    });
+    if (res.ok && res.data.status) {
+      return {
+        carrier: res.data.carrier ?? null,
+        method: res.data.method || 'prefix_estimate',
+        provider: res.data.provider || 'Backend Carrier Resolver',
+        ported: Boolean(res.data.ported),
+        mnpNotice: res.data.mnpNotice || MNP_ESTIMATE_NOTICE,
+        normalizedLocal: res.data.normalizedLocal || normalized,
+        normalizedE164: res.data.normalizedE164,
+      };
     }
-  } catch (e) {
-    // Ignore and proceed to real IP lookup
+  } catch {
+    // Fallback to deterministic local prefix estimate only if backend unreachable
   }
 
-  // Option 2: Primary lookup via ipwho.is (fast, HTTPS-enabled, returns connections details)
+  const localGuess = detectIspFromPhoneNumber(normalized);
+  return {
+    carrier: localGuess,
+    method: localGuess ? 'prefix_estimate' : 'unknown',
+    provider: 'Local NCC Prefix Table (Estimate)',
+    mnpNotice: MNP_ESTIMATE_NOTICE,
+    normalizedLocal: normalized,
+  };
+}
+
+/**
+ * Queries IP ISP only as an explicit user-triggered hint; returns null on WiFi/broadband
+ * instead of falsely defaulting every connection to MTN.
+ */
+export async function detectCarrierRealTime(): Promise<ISPName | null> {
   try {
-    const res = await fetch('https://ipwho.is/');
+    const res = await fetch('https://ipwho.is/', { signal: AbortSignal.timeout(5000) });
     if (res.ok) {
       const data = await res.json();
-      if (data && data.success && data.connection) {
-        const ispText = (data.connection.isp || data.connection.org || '').toLowerCase();
-        console.log('Primary real-time ISP detected:', data.connection.isp);
+      if (data?.success && data?.connection) {
+        const ispText = String(data.connection.isp || data.connection.org || '').toLowerCase();
         if (ispText.includes('mtn')) return 'MTN';
         if (ispText.includes('airtel')) return 'Airtel';
         if (ispText.includes('glo') || ispText.includes('globacom')) return 'Glo';
         if (ispText.includes('9mobile') || ispText.includes('etisalat')) return '9mobile';
       }
     }
-  } catch (err) {
-    console.warn('Primary ISP detection failed, trying fallback...', err);
+  } catch {
+    // Do not fabricate a carrier on failure
   }
-
-  // Option 3: Fallback lookup via ipapi.co (standard fallback)
-  try {
-    const res = await fetch('https://ipapi.co/json/');
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.org) {
-        const ispText = data.org.toLowerCase();
-        console.log('Fallback real-time ISP detected:', data.org);
-        if (ispText.includes('mtn')) return 'MTN';
-        if (ispText.includes('airtel')) return 'Airtel';
-        if (ispText.includes('glo') || ispText.includes('globacom')) return 'Glo';
-        if (ispText.includes('9mobile') || ispText.includes('etisalat')) return '9mobile';
-      }
-    }
-  } catch (err) {
-    console.warn('Fallback ISP detection failed:', err);
-  }
-
-  // Option 4: Fallback to ip-api.com
-  try {
-    const res = await fetch('https://ip-api.com/json/');
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.isp) {
-        const ispText = data.isp.toLowerCase();
-        console.log('Alternative real-time ISP detected:', data.isp);
-        if (ispText.includes('mtn')) return 'MTN';
-        if (ispText.includes('airtel')) return 'Airtel';
-        if (ispText.includes('glo') || ispText.includes('globacom')) return 'Glo';
-        if (ispText.includes('9mobile') || ispText.includes('etisalat')) return '9mobile';
-      }
-    }
-  } catch (err) {
-    console.warn('Alternative ISP detection failed:', err);
-  }
-
-  return 'MTN'; // Default if all geo-lookups fail or user is on custom Wifi/broadband
+  return null;
 }

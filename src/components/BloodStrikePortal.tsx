@@ -6,7 +6,7 @@ import {
   Flame, Award, Eye, Maximize2, Minimize2, ChevronRight, Settings,
   Compass, Plane, Wind, ShieldAlert, Cpu, Check, Sliders,
   ArrowUp, FastForward, RotateCcw, RotateCw, ArrowLeft,
-  Scissors, Palette, MapPin
+  Scissors, Palette, MapPin, HardDrive
 } from 'lucide-react';
 import { doc, setDoc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -30,6 +30,7 @@ import OperativeLoginModal from './fps/OperativeLoginModal';
 import LobbyOperative3D from './fps/LobbyOperative3D';
 import MobileGameModePrompt from './fps/MobileGameModePrompt';
 import BloodStrikeFpsGame from './BloodStrikeFpsGame';
+import { AssetCacheModal } from './AssetCacheModal';
 
 interface BloodStrikePortalProps {
   profile: UserProfile;
@@ -54,6 +55,7 @@ export default function BloodStrikePortal({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showAssetModal, setShowAssetModal] = useState(false);
 
   // Active Lobby View
   const [lobbyView, setLobbyView] = useState<'lobby' | 'guns' | 'knives' | 'choppers' | 'wardrobe' | 'maps' | 'multiplayer' | 'stats'>('lobby');
@@ -334,6 +336,16 @@ export default function BloodStrikePortal({
             title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
           >
             {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+          </button>
+
+          {/* Local 3D Assets Cache Manager */}
+          <button
+            type="button"
+            onClick={() => setShowAssetModal(true)}
+            className="p-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-xl text-sky-400 hover:text-sky-300 transition cursor-pointer"
+            title="Manage Local 3D Asset Storage"
+          >
+            <HardDrive size={15} />
           </button>
 
           {/* Fullscreen Toggle */}
@@ -1030,6 +1042,7 @@ export default function BloodStrikePortal({
         )}
       </AnimatePresence>
 
+      {showAssetModal && <AssetCacheModal onClose={() => setShowAssetModal(false)} />}
     </div>
   );
 }
